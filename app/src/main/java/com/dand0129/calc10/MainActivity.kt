@@ -3,7 +3,7 @@ package com.dand0129.calc10
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.Image
+import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -11,41 +11,38 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
+    val viewModel: CalculatorViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            Home()
+            Home(viewModel)
         }
     }
 }
 
 
-@Preview
 @Composable
-fun Home() {
-    val displayShow = remember { mutableStateOf("") }
-    val number1 = remember { mutableStateOf("") }
-    val number2 = remember { mutableStateOf("") }
-    val resultOfOperations = remember { mutableStateOf(0.0) }
-    val typeOfOperation = remember { mutableStateOf("") }
-    val onOff = remember { mutableStateOf(false) }
+fun Home(viewModel: CalculatorViewModel) {
+    val displayShow by viewModel.displayShow.observeAsState()
+    val onOff by viewModel.onOff.observeAsState()
 
     Box(
         modifier = Modifier
@@ -73,7 +70,7 @@ fun Home() {
                 Text(
                     fontFamily = FontFamily(Font(R.font.sumahuevosfont)),
                     fontSize = 20.sp,
-                    color = Color(51,51,153),
+                    color = Color(51, 51, 153),
                     text = "SUMA HUEVOS"
                 )
             }
@@ -84,8 +81,8 @@ fun Home() {
                         Column {
                             Spacer(modifier = Modifier.height(30.dp))
                             Display(
-                                textToDisplay = displayShow.value,
-                                powerOnOff = onOff.value
+                                textToDisplay = displayShow!!,
+                                powerOnOff = onOff!!
                             )
                             Spacer(modifier = Modifier.height(15.dp))
                             Box {
@@ -93,38 +90,27 @@ fun Home() {
                                 Column {
                                     Row {
                                         NumberButtons(
-                                            onButtonClicked = { value ->
-                                                if (!onOff.value) {
-                                                    displayShow.value = ""
-                                                } else {
-                                                    displayShow.value += value
-                                                }
-
+                                            onButtonClicked = { digit ->
+                                                viewModel.enterNumber(digit)
                                             }
                                         )
                                         Column {
                                             OperativeButtons(
                                                 operation = "+",
                                                 onButtonClicked = { value ->
-                                                    number1.value = displayShow.value
-                                                    displayShow.value = ""
-                                                    typeOfOperation.value = value
+                                                    viewModel.setTypeOfOperation("+")
                                                 }
                                             )
                                             OperativeButtons(
                                                 operation = "-",
                                                 onButtonClicked = { value ->
-                                                    number1.value = displayShow.value
-                                                    displayShow.value = ""
-                                                    typeOfOperation.value = value
+                                                    viewModel.setTypeOfOperation("-")
                                                 }
                                             )
                                             OperativeButtons(
                                                 operation = "x",
                                                 onButtonClicked = { value ->
-                                                    number1.value = displayShow.value
-                                                    displayShow.value = ""
-                                                    typeOfOperation.value = value
+                                                    viewModel.setTypeOfOperation("x")
                                                 }
                                             )
                                             /*
@@ -141,11 +127,7 @@ fun Home() {
                                                     backgroundColor = Color(105, 105, 105)
                                                 ),
                                                 onClick = {
-                                                    if (!onOff.value) {
-                                                        displayShow.value = ""
-                                                    } else {
-                                                        displayShow.value += "0"
-                                                    }
+                                                    viewModel.enterNumber("0")
                                                 }
                                             ) {
                                                 Text(text = "0")
@@ -158,11 +140,7 @@ fun Home() {
                                                     backgroundColor = Color(105, 105, 105)
                                                 ),
                                                 onClick = {
-                                                    if (!onOff.value) {
-                                                        displayShow.value = ""
-                                                    } else {
-                                                        displayShow.value += "."
-                                                    }
+                                                    viewModel.enterNumber(".")
                                                 }) {
                                                 Text(text = ".")
                                             }
@@ -171,34 +149,7 @@ fun Home() {
                                         Box(modifier = Modifier.width(49.dp)) {
                                             ResultButton(
                                                 onButtonClicked = {
-                                                    number2.value = displayShow.value
-                                                    if (!onOff.value){
-                                                        displayShow.value = ""
-                                                    } else if (number2.value == "") {
-                                                    displayShow.value = "Enter Second Number"
-                                                } else if (typeOfOperation.value == "+") {
-                                                    resultOfOperations.value =
-                                                        number1.value.toDouble() + number2.value.toDouble()
-                                                    displayShow.value =
-                                                        resultOfOperations.value.toString()
-                                                    } else if (typeOfOperation.value == "-") {
-                                                        resultOfOperations.value =
-                                                            number1.value.toDouble() - number2.value.toDouble()
-                                                        displayShow.value =
-                                                            resultOfOperations.value.toString()
-                                                    } else if (typeOfOperation.value == "x") {
-                                                        resultOfOperations.value =
-                                                            number1.value.toDouble() * number2.value.toDouble()
-                                                        displayShow.value =
-                                                            resultOfOperations.value.toString()
-                                                    } else if (typeOfOperation.value == "/") {
-                                                        resultOfOperations.value =
-                                                            number1.value.toDouble() / number2.value.toDouble()
-                                                        displayShow.value =
-                                                            resultOfOperations.value.toString()
-                                                    } else {
-                                                        return@ResultButton
-                                                    }
+                                                    viewModel.onResultClicked()
                                                 }
                                             )
                                         }
@@ -206,9 +157,7 @@ fun Home() {
                                         OperativeButtons(
                                             operation = "/",
                                             onButtonClicked = { value ->
-                                                number1.value = displayShow.value
-                                                displayShow.value = ""
-                                                typeOfOperation.value = value
+                                                viewModel.setTypeOfOperation("/")
                                             }
                                         )
                                     }
@@ -223,7 +172,8 @@ fun Home() {
                                                     backgroundColor = Color(105, 105, 105)
                                                 ),
                                                 onClick = {
-                                                    displayShow.value = displayShow.value.dropLast(1)
+                                                    /*displayShow.value =
+                                                        displayShow.value.dropLast(1)*/ //TODO: Completar en el view model
                                                 }) {
                                                 Text(
                                                     text = "\u232b",
@@ -234,9 +184,9 @@ fun Home() {
                                             }
                                         }
                                         Box(modifier = Modifier.width(50.dp)) {
-                                        OnOffButton(onButtonClicked = {value->
-                                            onOff.value = value
-                                        })
+                                            OnOffButton(onButtonClicked = { value ->
+                                                viewModel.onOffClicked(value)
+                                            })
                                         }
                                     }
                                     // End of delete button
@@ -250,15 +200,7 @@ fun Home() {
             }
         }
         // End of calculator design
-        /*
-        Box(modifier = Modifier.align(Alignment.BottomCenter)){
-            val imageResource: Painter = painterResource(id = R.drawable.totoro)
-            Image(
-                painter = imageResource,
-                contentDescription = "My Image"
-            )
-        }
-        */
+
     }
 
 }
@@ -347,8 +289,8 @@ fun OnOffButton(
             backgroundColor = Color(105, 105, 105)
         ),
         onClick = {
-        onOff.value = !onOff.value
-        onButtonClicked(onOff.value)
+            onOff.value = !onOff.value
+            onButtonClicked(onOff.value)
         }) {
         Text(text = "ψ")
     }
@@ -363,7 +305,8 @@ fun Display(
     val red = remember { mutableStateOf(0) }
     val green = remember { mutableStateOf(0) }
     val blue = remember { mutableStateOf(0) }
-    if(!powerOnOff) {
+
+    if (!powerOnOff) {
         textToShow.value = ""
         red.value = 43
         green.value = 73
@@ -383,10 +326,14 @@ fun Display(
                 shape = RoundedCornerShape(10.dp)
             )
     ) {
+        Box(modifier = Modifier.align(Alignment.Center)) {
+            Welcome(message = "Welcome", trigger = powerOnOff)
+        }
         Text(
             modifier = Modifier
                 .align(Alignment.Center)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .pointerInput(Unit) {},
             text = textToShow.value,
             textAlign = TextAlign.End,
             color = Color(48, 98, 48),
@@ -395,3 +342,35 @@ fun Display(
         )
     }
 }
+
+@Composable
+fun Welcome(
+    trigger: Boolean = false,
+    message: String,
+    durationMillis: Long = 1500
+) {
+    val showMessage = remember { mutableStateOf(false) }
+
+    if (trigger) {
+        LaunchedEffect(showMessage) {
+            showMessage.value = true
+            delay(durationMillis)
+            showMessage.value = false
+        }
+
+        if (showMessage.value) {
+            Text(
+                text = message,
+                textAlign = TextAlign.End,
+                color = Color(48, 98, 48),
+                fontSize = 15.sp,
+                fontFamily = FontFamily(Font(R.font.gameboyfont))
+            )
+        }
+    } else {
+        Text(
+            text = ""
+        )
+    }
+}
+
